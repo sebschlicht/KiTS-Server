@@ -1,0 +1,21 @@
+# Generated files
+bin/
+gen/
+out/
+target/
+
+# Gradle files
+.gradle/
+build/
+
+# Eclipse files
+/.classpath
+/.project
+/.settings/
+
+# Log Files
+*.log
+
+# Intellij
+*.iml
+.idea/workspace.xml
