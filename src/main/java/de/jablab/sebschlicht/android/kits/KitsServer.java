@@ -1,109 +1,151 @@
 package de.jablab.sebschlicht.android.kits;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.DatagramPacket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.sun.jna.Native;
 
-import de.jablab.sebschlicht.BroadcastReceiver;
 import de.jablab.sebschlicht.android.kits.commands.Command;
 import de.jablab.sebschlicht.android.kits.commands.IntroType;
 import de.jablab.sebschlicht.android.kits.commands.PlayCommand;
-import de.jablab.sebschlicht.android.kits.commands.RegisterCommand;
 import de.jablab.sebschlicht.android.kits.commands.SetVolumeCommand;
-import de.jablab.sebschlicht.android.kits.commands.StopCommand;
 import de.jablab.sebschlicht.android.kits.player.SeriesPlayer;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.datagram.DatagramSocket;
+import io.vertx.core.datagram.DatagramSocketOptions;
 import uk.co.caprica.vlcj.binding.LibVlc;
 import uk.co.caprica.vlcj.discovery.NativeDiscovery;
 import uk.co.caprica.vlcj.runtime.RuntimeUtil;
 
-public class KitsServer implements BroadcastReceiver.ReceiverCallback {
+public class KitsServer
+        implements Handler<io.vertx.core.datagram.DatagramPacket> {
 
-	private static final int KITS_SERVER_PORT = 61010;
+    private final static Logger LOG = LoggerFactory.getLogger(KitsServer.class);
 
-	private BroadcastReceiver broadcastReceiver;
+    private static final int KITS_SERVER_PORT = 61010;
 
-	private SeriesPlayer player;
+    private DatagramSocket socket;
 
-	private Thread clientSearch;
+    private SeriesPlayer player;
 
-	public KitsServer(KitsServerConfig config) {
-		this.broadcastReceiver = new BroadcastReceiver(this, KITS_SERVER_PORT);
+    public KitsServer(
+            KitsServerConfig config) {
+        LOG.info("Intro audio files directory: "
+                + config.getAudioIntroDirectory());
+        LOG.info("Intro video files directory: "
+                + config.getVideoIntroDirectory());
 
-		this.clientSearch = new Thread(this.broadcastReceiver);
-		this.clientSearch.start();
+        // create UDP socket for listening
+        Vertx vertx = Vertx.vertx();
+        socket = vertx.createDatagramSocket(
+                new DatagramSocketOptions().setBroadcast(true));
 
-		this.player = new SeriesPlayer(config.getAudioIntroDirectory(), config.getVideoIntroDirectory());
-	}
+        this.player = new SeriesPlayer(config.getAudioIntroDirectory(),
+                config.getVideoIntroDirectory());
+    }
 
-	@Override
-	public void handleRequest(DatagramPacket request) {
-		String message;
-		try {
-			message = new String(request.getData(), "UTF-8");
-			message = message.trim();
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-			return;
-		}
+    public void startListening() {
+        socket.listen(KITS_SERVER_PORT, "0.0.0.0", asyncResult -> {
+            if (asyncResult.succeeded()) {
+                LOG.info("Listening for KiTS applications on "
+                        + socket.localAddress() + "...");
+                socket.handler(this);
+            } else {
+                LOG.warn("Failed to listen for next packet!",
+                        asyncResult.cause());
+            }
+        });
+    }
 
-		Command command = Command.parseString(message);
-		if (command instanceof RegisterCommand) {
-			this.broadcastReceiver.sendResponse(request.getAddress(), request.getPort(),
-					Command.SERVER_SEARCH_RESPONSE);
-			System.out.println("client registered (" + request.getAddress() + ")");
-		} else if (command instanceof PlayCommand) {
-			PlayCommand play = (PlayCommand) command;
-			System.out.println("playing: " + play.getName() + " (" + play.getType() + ")");
-			if (play.getType() == IntroType.FULL) {
-				System.out.println(this.player.playVideoIntro(play.getName()));
-			} else {
-				System.out.println(this.player.playAudioIntro(play.getName()));
-			}
-		} else if (command instanceof SetVolumeCommand) {
-			SetVolumeCommand setVolume = (SetVolumeCommand) command;
-			System.out.println("volume: " + setVolume.getVolume());
-			this.player.setVolume(setVolume.getVolume());
-		} else if (command instanceof StopCommand) {
-			System.out.println("stop");
-			this.player.stop();
-		} else {
-			System.err.println("unknown message:\n" + message + "\n: " + command);
-		}
-	}
+    @Override
+    public void handle(io.vertx.core.datagram.DatagramPacket event) {
+        Buffer data = event.data();
+        if (data == null) {
+            return;
+        }
+        String content = data.toString();
+        if (content == null) {
+            return;
+        }
 
-	public void shutdown() {
-		this.clientSearch.interrupt();
-	}
+        // TODO make this async, the string SHOULD NOT but potentially COULD be large
+        Command command = Command.parseString(content);
+        // TODO base command with type to identify, register for known types and classes
 
-	public static void main(String[] args) throws IOException {
-		KitsServerConfig config = new KitsServerConfig();
-		config.loadFromResourcesFile("config.properties");
+        switch (command.getType()) {
+            case REGISTER:
+                LOG.debug("Registering host \"" + event.sender() + "\"...");
+                Buffer buffer = Buffer.buffer(Command.SERVER_SEARCH_RESPONSE);
+                socket.send(buffer, event.sender().port(),
+                        event.sender().host(), asyncResult -> {
+                            LOG.info("KiTS application on host \""
+                                    + event.sender().host()
+                                    + "\" has registered successfully.");
+                        });
+                break;
 
-		System.setProperty("jna.nosys", "true");
+            case PLAY:
+                PlayCommand play = (PlayCommand) command;
+                LOG.info("playing: " + play.getName() + " (" + play.getType()
+                        + ")");
+                if (play.getIntroType() == IntroType.FULL) {
+                    // TODO is this async?
+                    if (!player.playVideoIntro(play.getName())) {
+                        LOG.warn("Intro video file for \"" + play.getName()
+                                + "\" is missing!");
+                    }
+                } else {
+                    // TODO is this async?
+                    if (!player.playAudioIntro(play.getName())) {
+                        LOG.warn("Intro audio file for \"" + play.getName()
+                                + "\" is missing!");
+                    }
+                }
+                break;
 
-		// sudo apt-get install libvlc-dev
-		// DO NOT mount /tmp with noexec
-		// sudo mount -o remount,exec /tmp
-		try {
-			new NativeDiscovery().discover();
-			System.out.println("Connected to VLC " + LibVlc.INSTANCE.libvlc_get_version() + ".");
-		} catch (Exception e) {
-			System.err.println("Failed to link VLC library! See exception below for details:");
-			e.printStackTrace();
-			return;
-		}
+            case SET_VOLUME:
+                SetVolumeCommand setVolume = (SetVolumeCommand) command;
+                LOG.debug("Setting volume to " + setVolume.getVolume() + "...");
+                player.setVolume(setVolume.getVolume());
+                LOG.info("Volume has been set to " + setVolume.getVolume()
+                        + ".");
+                break;
 
-		Native.loadLibrary(RuntimeUtil.getLibVlcLibraryName(), LibVlc.class);
-		KitsServer server = new KitsServer(config);
+            case STOP:
+                LOG.debug("Stopping...");
+                player.stop();
+                LOG.info("Playback has been stopped.");
+                break;
+        }
+    }
 
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				server.shutdown();
-				System.out.println("server shutted down");
-			}
-		});
-	}
+    public static void main(String[] args) throws IOException {
+        // load server configuration
+        KitsServerConfig config = new KitsServerConfig("config.properties");
+
+        // link server to VLC library
+        // sudo apt-get install libvlc-dev
+        // DO NOT mount /tmp with noexec
+        // sudo mount -o remount,exec /tmp
+        System.setProperty("jna.nosys", "true");
+        try {
+            new NativeDiscovery().discover();
+            System.out.println("Connected to VLC "
+                    + LibVlc.INSTANCE.libvlc_get_version() + ".");
+        } catch (Exception e) {
+            System.err.println(
+                    "Failed to link VLC library! See exception below for details:");
+            e.printStackTrace();
+            return;
+        }
+        Native.loadLibrary(RuntimeUtil.getLibVlcLibraryName(), LibVlc.class);
+
+        // start server
+        KitsServer server = new KitsServer(config);
+        server.startListening();
+    }
 }

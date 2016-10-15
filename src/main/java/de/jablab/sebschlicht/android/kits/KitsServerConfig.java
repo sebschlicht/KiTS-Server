@@ -1,28 +1,39 @@
 package de.jablab.sebschlicht.android.kits;
 
 import java.io.File;
+import java.io.IOException;
 
 import de.jablab.sebschlicht.ApplicationConfig;
 
 public class KitsServerConfig extends ApplicationConfig {
 
-	private File audioIntroDirectory;
+    public KitsServerConfig(
+            File file) throws IOException {
+        super(file);
+    }
 
-	private File videoIntroDirectory;
+    public KitsServerConfig(
+            String resourceName) throws IOException {
+        super(resourceName);
+    }
 
-	public File getAudioIntroDirectory() {
-		return audioIntroDirectory;
-	}
+    private File audioIntroDirectory;
 
-	public void setAudioIntroDirectory(File audioIntroDirectory) {
-		this.audioIntroDirectory = audioIntroDirectory;
-	}
+    private File videoIntroDirectory;
 
-	public File getVideoIntroDirectory() {
-		return videoIntroDirectory;
-	}
+    public File getAudioIntroDirectory() {
+        return audioIntroDirectory;
+    }
 
-	public void setVideoIntroDirectory(File videoIntroDirectory) {
-		this.videoIntroDirectory = videoIntroDirectory;
-	}
+    public void setAudioIntroDirectory(File audioIntroDirectory) {
+        this.audioIntroDirectory = audioIntroDirectory;
+    }
+
+    public File getVideoIntroDirectory() {
+        return videoIntroDirectory;
+    }
+
+    public void setVideoIntroDirectory(File videoIntroDirectory) {
+        this.videoIntroDirectory = videoIntroDirectory;
+    }
 }

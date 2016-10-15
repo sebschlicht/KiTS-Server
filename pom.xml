@@ -8,6 +8,12 @@
   <properties>
     <java.exec.launcherClass>de.jablab.sebschlicht.android.kits.KitsServer</java.exec.launcherClass>
 
+    <!-- Vert.x event-driven applications -->
+    <vertx.version>3.3.3</vertx.version>
+    
+    <!-- Logging with Logback -->
+    <logback.version>1.1.7</logback.version>
+
     <!-- version of Java compiler plugin -->
     <java.compiler-plugin.version>3.1</java.compiler-plugin.version>
     <java.exec.version>1.2.1</java.exec.version>
@@ -23,11 +29,16 @@
       <artifactId>KitsApi</artifactId>
       <version>0.0.1-SNAPSHOT</version>
     </dependency>
-    <!-- Logging with Logback -->
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+      <version>${vertx.version}</version>
+    </dependency>
+    
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.1.7</version>
+      <version>${logback.version}</version>
     </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
