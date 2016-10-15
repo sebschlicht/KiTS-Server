@@ -79,7 +79,8 @@ public class KitsServer
         switch (command.getType()) {
             case REGISTER:
                 LOG.debug("Registering host \"" + event.sender() + "\"...");
-                Buffer buffer = Buffer.buffer(Command.SERVER_SEARCH_RESPONSE);
+                Buffer buffer =
+                        Buffer.buffer(Command.SERVER_SEARCH_RESPONSE_STRING);
                 socket.send(buffer, event.sender().port(),
                         event.sender().host(), asyncResult -> {
                             LOG.info("KiTS application on host \""
