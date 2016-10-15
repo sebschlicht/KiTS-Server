@@ -23,6 +23,12 @@
       <artifactId>KitsApi</artifactId>
       <version>0.0.1-SNAPSHOT</version>
     </dependency>
+    <!-- Logging with Logback -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.1.7</version>
+    </dependency>
     <dependency>
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
@@ -44,23 +50,11 @@
       <version>1.0.3-1</version>
     </dependency>
     <dependency>
-      <groupId>xuggle</groupId>
-      <artifactId>xuggle-xuggler</artifactId>
-      <version>5.2</version>
-    </dependency>
-    <dependency>
       <groupId>uk.co.caprica</groupId>
       <artifactId>vlcj</artifactId>
       <version>2.4.1</version>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <id>xuggle repo</id>
-      <url>http://xuggle.googlecode.com/svn/trunk/repo/share/java/</url>
-    </repository>
-  </repositories>
 
   <build>
     <plugins>
