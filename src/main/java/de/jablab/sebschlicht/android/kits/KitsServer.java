@@ -73,8 +73,12 @@ public class KitsServer
         }
 
         // TODO make this async, the string SHOULD NOT but potentially COULD be large
-        Command command = Command.parseString(content);
-        // TODO base command with type to identify, register for known types and classes
+        Command command = Command.parseStringQuietly(content);
+        if (command == null) {
+            // unexpected command
+            LOG.warn("Unexpected command received: " + content);
+            return;
+        }
 
         switch (command.getType()) {
             case REGISTER:
@@ -91,19 +95,19 @@ public class KitsServer
 
             case PLAY:
                 PlayCommand play = (PlayCommand) command;
-                LOG.info("playing: " + play.getName() + " (" + play.getType()
-                        + ")");
+                LOG.info("playing: " + play.getName() + " ("
+                        + play.getIntroType() + ")");
                 if (play.getIntroType() == IntroType.FULL) {
                     // TODO is this async?
                     if (!player.playVideoIntro(play.getName())) {
-                        LOG.warn("Intro video file for \"" + play.getName()
-                                + "\" is missing!");
+                        LOG.warn("Intro video file for series \""
+                                + play.getName() + "\" is missing!");
                     }
                 } else {
                     // TODO is this async?
                     if (!player.playAudioIntro(play.getName())) {
-                        LOG.warn("Intro audio file for \"" + play.getName()
-                                + "\" is missing!");
+                        LOG.warn("Intro audio file for series \""
+                                + play.getName() + "\" is missing!");
                     }
                 }
                 break;
