@@ -1,6 +1,8 @@
 package de.jablab.sebschlicht.android.kits.player;
 
 import java.awt.Canvas;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 import javax.swing.JFrame;
 
@@ -23,23 +25,33 @@ public class VlcPlayer {
         };
         MediaPlayerFactory mediaPlayerFactory =
                 new MediaPlayerFactory(libvlcArgs);
-        EmbeddedMediaPlayer player =
-                mediaPlayerFactory
-                        .newEmbeddedMediaPlayer(new DefaultFullScreenStrategy(
-                                mainFrame));
+        EmbeddedMediaPlayer player = mediaPlayerFactory.newEmbeddedMediaPlayer(
+                new DefaultFullScreenStrategy(mainFrame));
 
         String[] standardMediaOptions = {};
         player.setStandardMediaOptions(standardMediaOptions);
 
-        player.setVideoSurface(mediaPlayerFactory.newVideoSurface(videoSurface));
+        player.setVideoSurface(
+                mediaPlayerFactory.newVideoSurface(videoSurface));
         mediaPlayerFactory.release();
 
         this.player = player;
     }
 
-    public void play(String filePath, String[] options) {
-        player.playMedia(filePath, options);
+    public void play(File file, String[] options) throws FileNotFoundException {
+        if (!file.exists()) {
+            throw new FileNotFoundException(
+                    "File \"" + file.getAbsolutePath() + "\" is missing!");
+        }
         player.setVolume(volume);
+        if (!player.playMedia(file.getAbsolutePath(), options)) {
+            throw new IllegalStateException(
+                    "Failed to play file \"" + file.getAbsolutePath() + "\"!");
+        }
+    }
+
+    public void play(File file) throws FileNotFoundException {
+        play(file, new String[] {});
     }
 
     public void setVolume(int volume) {
@@ -53,7 +65,7 @@ public class VlcPlayer {
         player.stop();
     }
 
-    public void cleanUp() {
+    public void close() {
         player.release();
     }
 }

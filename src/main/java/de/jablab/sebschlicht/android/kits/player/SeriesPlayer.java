@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.io.File;
+import java.io.FileNotFoundException;
 
 import javax.swing.JFrame;
 
@@ -36,26 +37,16 @@ public class SeriesPlayer {
         frame.setVisible(true);
     }
 
-    public boolean playAudioIntro(String name) {
+    public void playAudioIntro(String name) throws FileNotFoundException {
         File audioIntro = new File(audioIntroDir, name + ".ogg");
-        if (audioIntro.exists()) {
-            player.play(audioIntro.getPath(), new String[] {});
-            return true;
-        } else {
-            System.out.println("missing audio file: " + audioIntro.getPath());
-            return false;
-        }
+        // TODO wrap FNF in SeriesFNF exception?
+        player.play(audioIntro);
     }
 
-    public boolean playVideoIntro(String name) {
+    public void playVideoIntro(String name) throws FileNotFoundException {
         File videoIntro = new File(videoIntroDir, name + ".mp4");
-        if (videoIntro.exists()) {
-            player.play(videoIntro.getPath(), new String[] {});
-            return true;
-        } else {
-            System.out.println("missing video file: " + videoIntro.getPath());
-            return false;
-        }
+        // TODO wrap FNF in SeriesFNF exception?
+        player.play(videoIntro);
     }
 
     public void setVolume(int volume) {
@@ -64,5 +55,9 @@ public class SeriesPlayer {
 
     public void stop() {
         player.stop();
+    }
+
+    public void close() {
+        player.close();
     }
 }

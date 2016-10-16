@@ -1,5 +1,6 @@
 package de.jablab.sebschlicht.android.kits;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.slf4j.Logger;
@@ -98,16 +99,24 @@ public class KitsServer
                 LOG.info("playing: " + play.getName() + " ("
                         + play.getIntroType() + ")");
                 if (play.getIntroType() == IntroType.FULL) {
-                    // TODO is this async?
-                    if (!player.playVideoIntro(play.getName())) {
-                        LOG.warn("Intro video file for series \""
-                                + play.getName() + "\" is missing!");
+                    try {
+                        player.playVideoIntro(play.getName());
+                    } catch (FileNotFoundException e) {
+                        LOG.warn("Video intro for series \"" + play.getName()
+                                + "\" is missing: " + e.getMessage());
+                    } catch (IllegalStateException e) {
+                        LOG.error("Failed to play video intro for series \""
+                                + play.getName() + "\"!", e);
                     }
                 } else {
-                    // TODO is this async?
-                    if (!player.playAudioIntro(play.getName())) {
-                        LOG.warn("Intro audio file for series \""
-                                + play.getName() + "\" is missing!");
+                    try {
+                        player.playAudioIntro(play.getName());
+                    } catch (FileNotFoundException e) {
+                        LOG.warn("Audio intro for series \"" + play.getName()
+                                + "\" is missing: " + e.getMessage());
+                    } catch (IllegalStateException e) {
+                        LOG.error("Failed to play audio intro for series \""
+                                + play.getName() + "\"!", e);
                     }
                 }
                 break;
